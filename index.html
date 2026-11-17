@@ -14,15 +14,107 @@
 <meta name="apple-mobile-web-app-title" content="حركة السفن">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <style>
-  html, body { height:100%; margin:0; background:#f1f5f7; }
+  html, body { height:100%; margin:0; background:#f1f5f7; font-family:system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif; }
   iframe { position:fixed; top:env(safe-area-inset-top); left:0; width:100%;
            height:calc(100% - env(safe-area-inset-top)); border:0; }
+  #bio { position:fixed; inset:0; z-index:10; display:none; align-items:center; justify-content:center;
+         background:rgba(20,40,50,.45); padding:20px; }
+  #bio .box { background:#fff; border-radius:16px; padding:26px 22px; max-width:340px; width:100%; text-align:center;
+              box-shadow:0 10px 40px rgba(0,0,0,.25); }
+  #bio img { width:64px; height:64px; border-radius:14px; }
+  #bio h2 { margin:12px 0 6px; font-size:19px; color:#1c2b33; }
+  #bio p { margin:0 0 18px; color:#6b7c83; font-size:14.5px; line-height:1.6; }
+  #bio button { display:block; width:100%; border:0; border-radius:10px; padding:13px; font-size:16px; font-family:inherit; cursor:pointer; }
+  #bio .go { background:#24687f; color:#fff; font-weight:600; }
+  #bio .no { background:transparent; color:#24687f; margin-top:8px; }
 </style>
 </head>
 <body>
 <iframe src="https://script.google.com/macros/s/AKfycbyYtIvgVNqU9-KrgbRIoR7YtDFOuIYjLI4TDhc9fZ3STQeFrXJmlHji5lSFaNieWiZR/exec" title="حركة السفن"></iframe>
+<div id="bio"><div class="box">
+  <img src="icon-192.png" alt="">
+  <h2 id="bio-t"></h2><p id="bio-m"></p>
+  <button class="go" id="bio-go"></button><button class="no" id="bio-no"></button>
+</div></div>
 <script>
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(function () {});
+
+  /* الدخول بالبصمة أو الوجه: هذه الصفحة تستدعي البصمة (WebAuthn) وتحفظ مفتاح الجهاز،
+     وتسلّمه للتطبيق فقط بعد التحقق من البصمة، وفقط لإطار التطبيق نفسه. */
+  var APP_ORIGIN = /^https:\/\/[a-z0-9-]+-script\.googleusercontent\.com$/;
+  var KEY = 'fa_bio';
+  var T = {
+    ar: { unlockT:'حركة السفن', unlockM:'ادخل ببصمة الإصبع أو بالوجه', unlockGo:'الدخول بالبصمة', unlockNo:'الدخول بكلمة المرور',
+          enrollT:'تفعيل الدخول بالبصمة', enrollM:'أكّد ببصمة الإصبع أو بالوجه لتفعيلها على هذا الجهاز', enrollGo:'تفعيل الآن', enrollNo:'إلغاء',
+          failed:'لم يتم التحقق بالبصمة', unsupported:'هذا الجهاز لا يدعم الدخول بالبصمة' },
+    en: { unlockT:'Vessel Movements', unlockM:'Log in with your fingerprint or face', unlockGo:'Log in with biometrics', unlockNo:'Use password',
+          enrollT:'Enable biometric login', enrollM:'Confirm with your fingerprint or face to enable it on this device', enrollGo:'Enable now', enrollNo:'Cancel',
+          failed:'Biometric check failed', unsupported:'This device does not support biometric login' }
+  };
+  function load() { try { return JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { return null; } }
+  function save(v) { try { if (v) localStorage.setItem(KEY, JSON.stringify(v)); else localStorage.removeItem(KEY); } catch (e) {} }
+  function rnd(n) { var a = new Uint8Array(n); crypto.getRandomValues(a); return a; }
+  function b64(buf) { return btoa(String.fromCharCode.apply(null, new Uint8Array(buf))); }
+  function unb64(s) { return Uint8Array.from(atob(s), function (c) { return c.charCodeAt(0); }); }
+  function avail() {
+    if (!window.PublicKeyCredential || !PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable) return Promise.resolve(false);
+    return PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().catch(function () { return false; });
+  }
+  var box = document.getElementById('bio');
+  function ask(lang, kind) { // نافذة بزر: البصمة تحتاج لمسة من المستخدم على هذه الصفحة
+    var t = T[lang] || T.ar;
+    document.getElementById('bio-t').textContent = t[kind + 'T'];
+    document.getElementById('bio-m').textContent = t[kind + 'M'];
+    document.getElementById('bio-go').textContent = t[kind + 'Go'];
+    document.getElementById('bio-no').textContent = t[kind + 'No'];
+    box.dir = lang === 'en' ? 'ltr' : 'rtl';
+    box.style.display = 'flex';
+    return new Promise(function (res) {
+      document.getElementById('bio-go').onclick = function () { box.style.display = 'none'; res(true); };
+      document.getElementById('bio-no').onclick = function () { box.style.display = 'none'; res(false); };
+    });
+  }
+  window.addEventListener('message', function (ev) {
+    if (!APP_ORIGIN.test(ev.origin) || !ev.data || typeof ev.data.t !== 'string') return;
+    var d = ev.data, src = ev.source, org = ev.origin;
+    var reply = function (m) { src.postMessage(m, org); };
+    var state = function () { avail().then(function (a) { var k = load(); reply({ t:'bio:state', avail:a, enrolled:!!k, user:k ? k.user : '' }); }); };
+    var t = T[d.lang] || T.ar;
+    if (d.t === 'bio:hello') state();
+    else if (d.t === 'bio:forget') { var k0 = load(); save(null); reply({ t:'bio:forgotten', id:k0 ? k0.id : '' }); state(); }
+    else if (d.t === 'bio:unlock') {
+      var k = load();
+      if (!k) { reply({ t:'bio:fail', reason:'' }); return; }
+      ask(d.lang, 'unlock').then(function (go) {
+        if (!go) { reply({ t:'bio:fail', reason:'cancel' }); return; }
+        return navigator.credentials.get({ publicKey:{ challenge:rnd(32), timeout:60000, userVerification:'required',
+          allowCredentials:[{ type:'public-key', id:unb64(k.cred) }] } })
+          .then(function (c) { if (!c) throw new Error('x'); reply({ t:'bio:creds', id:k.id, secret:k.secret }); })
+          .catch(function (e) { reply({ t:'bio:fail', reason:e && e.name === 'NotAllowedError' ? 'cancel' : t.failed }); });
+      });
+    }
+    else if (d.t === 'bio:enroll') {
+      if (!d.id || !d.secret) return;
+      avail().then(function (a) {
+        if (!a) { reply({ t:'bio:fail', reason:t.unsupported }); return; }
+        return ask(d.lang, 'enroll').then(function (go) {
+          if (!go) { reply({ t:'bio:fail', reason:'cancel' }); return; }
+          return navigator.credentials.create({ publicKey:{
+            challenge:rnd(32), timeout:60000,
+            rp:{ name:'حركة السفن', id:location.hostname },
+            user:{ id:rnd(16), name:String(d.user || 'user'), displayName:String(d.name || d.user || 'user') },
+            pubKeyCredParams:[{ type:'public-key', alg:-7 }, { type:'public-key', alg:-257 }],
+            authenticatorSelection:{ authenticatorAttachment:'platform', userVerification:'required', residentKey:'discouraged' },
+            attestation:'none' } })
+            .then(function (c) {
+              save({ cred:b64(c.rawId), id:d.id, secret:d.secret, user:d.user });
+              reply({ t:'bio:enrolled' }); state();
+            })
+            .catch(function (e) { reply({ t:'bio:fail', reason:e && e.name === 'NotAllowedError' ? 'cancel' : t.failed }); });
+        });
+      });
+    }
+  });
 </script>
 </body>
 </html>
