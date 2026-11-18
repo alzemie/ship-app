@@ -17,6 +17,11 @@
   html, body { height:100%; margin:0; background:#f1f5f7; font-family:system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif; }
   iframe { position:fixed; top:env(safe-area-inset-top); left:0; width:100%;
            height:calc(100% - env(safe-area-inset-top)); border:0; }
+  /* شاشة بلون مظهر التطبيق (فاتح/داكن) تغطي وقت تحميل التطبيق، حتى لا يظهر الأبيض قبل الداكن */
+  #splash { position:fixed; inset:0; z-index:5; display:flex; align-items:center; justify-content:center; background:#f1f5f7; transition:opacity .25s; }
+  #splash img { width:72px; height:72px; border-radius:16px; opacity:.9; }
+  #splash.off { opacity:0; pointer-events:none; }
+  html.dark, html.dark body, html.dark #splash { background:#0f1a1f; }
   #bio { position:fixed; inset:0; z-index:10; display:none; align-items:center; justify-content:center;
          background:rgba(20,40,50,.45); padding:20px; }
   #bio .box { background:#fff; border-radius:16px; padding:26px 22px; max-width:340px; width:100%; text-align:center;
@@ -28,9 +33,14 @@
   #bio .go { background:#24687f; color:#fff; font-weight:600; }
   #bio .no { background:transparent; color:#24687f; margin-top:8px; }
 </style>
+<script>
+  try { if (localStorage.getItem('fa_dark') === '1') { document.documentElement.className = 'dark';
+    document.querySelector('meta[name=theme-color]').setAttribute('content', '#0f1a1f'); } } catch (e) {}
+</script>
 </head>
 <body>
 <iframe src="https://script.google.com/macros/s/AKfycbyYtIvgVNqU9-KrgbRIoR7YtDFOuIYjLI4TDhc9fZ3STQeFrXJmlHji5lSFaNieWiZR/exec" title="حركة السفن"></iframe>
+<div id="splash"><img src="icon-192.png" alt=""></div>
 <div id="bio"><div class="box">
   <img src="icon-192.png" alt="">
   <h2 id="bio-t"></h2><p id="bio-m"></p>
@@ -61,6 +71,9 @@
     return PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable().catch(function () { return false; });
   }
   var box = document.getElementById('bio');
+  var splash = document.getElementById('splash');
+  function hideSplash() { splash.classList.add('off'); }
+  setTimeout(hideSplash, 15000); // احتياط إذا لم يصل رد التطبيق
   function ask(lang, kind) { // نافذة بزر: البصمة تحتاج لمسة من المستخدم على هذه الصفحة
     var t = T[lang] || T.ar;
     document.getElementById('bio-t').textContent = t[kind + 'T'];
@@ -80,6 +93,12 @@
     var reply = function (m) { src.postMessage(m, org); };
     var state = function () { avail().then(function (a) { var k = load(); reply({ t:'bio:state', avail:a, enrolled:!!k, user:k ? k.user : '' }); }); };
     var t = T[d.lang] || T.ar;
+    if (d.t === 'app:theme') { // مظهر التطبيق: يُحفظ للفتح القادم، وتُخفى شاشة التحميل
+      try { localStorage.setItem('fa_dark', d.dark ? '1' : '0'); } catch (e) {}
+      document.documentElement.className = d.dark ? 'dark' : '';
+      document.querySelector('meta[name=theme-color]').setAttribute('content', d.dark ? '#0f1a1f' : '#24687f');
+      hideSplash(); return;
+    }
     if (d.t === 'bio:hello') state();
     else if (d.t === 'bio:forget') { var k0 = load(); save(null); reply({ t:'bio:forgotten', id:k0 ? k0.id : '' }); state(); }
     else if (d.t === 'bio:unlock') {
