@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>حركة السفن</title>
+<title>Safen</title>
 <meta name="robots" content="noindex, nofollow">
 <meta name="theme-color" content="#24687f">
 <link rel="manifest" href="manifest.webmanifest">
@@ -11,7 +11,7 @@
 <link rel="apple-touch-icon" href="icon-180.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="حركة السفن">
+<meta name="apple-mobile-web-app-title" content="Safen">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <style>
   html, body { height:100%; margin:0; background:#f1f5f7; font-family:system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif; }
@@ -39,7 +39,7 @@
 </script>
 </head>
 <body>
-<iframe src="https://script.google.com/macros/s/AKfycbyYtIvgVNqU9-KrgbRIoR7YtDFOuIYjLI4TDhc9fZ3STQeFrXJmlHji5lSFaNieWiZR/exec" title="حركة السفن"></iframe>
+<iframe src="https://script.google.com/macros/s/AKfycbyYtIvgVNqU9-KrgbRIoR7YtDFOuIYjLI4TDhc9fZ3STQeFrXJmlHji5lSFaNieWiZR/exec" title="Safen"></iframe>
 <div id="splash"><img src="icon-192.png" alt=""></div>
 <div id="bio"><div class="box">
   <img src="icon-192.png" alt="">
@@ -54,10 +54,10 @@
   var APP_ORIGIN = /^https:\/\/[a-z0-9-]+-script\.googleusercontent\.com$/;
   var KEY = 'fa_bio';
   var T = {
-    ar: { unlockT:'حركة السفن', unlockM:'ادخل ببصمة الإصبع أو بالوجه', unlockGo:'الدخول بالبصمة', unlockNo:'الدخول بكلمة المرور',
+    ar: { unlockT:'سافِن', unlockM:'ادخل ببصمة الإصبع أو بالوجه', unlockGo:'الدخول بالبصمة', unlockNo:'الدخول بكلمة المرور',
           enrollT:'تفعيل الدخول بالبصمة', enrollM:'أكّد ببصمة الإصبع أو بالوجه لتفعيلها على هذا الجهاز', enrollGo:'تفعيل الآن', enrollNo:'إلغاء',
           failed:'لم يتم التحقق بالبصمة', unsupported:'هذا الجهاز لا يدعم الدخول بالبصمة' },
-    en: { unlockT:'Vessel Movements', unlockM:'Log in with your fingerprint or face', unlockGo:'Log in with biometrics', unlockNo:'Use password',
+    en: { unlockT:'Safen', unlockM:'Log in with your fingerprint or face', unlockGo:'Log in with biometrics', unlockNo:'Use password',
           enrollT:'Enable biometric login', enrollM:'Confirm with your fingerprint or face to enable it on this device', enrollGo:'Enable now', enrollNo:'Cancel',
           failed:'Biometric check failed', unsupported:'This device does not support biometric login' }
   };
@@ -120,7 +120,7 @@
           if (!go) { reply({ t:'bio:fail', reason:'cancel' }); return; }
           return navigator.credentials.create({ publicKey:{
             challenge:rnd(32), timeout:60000,
-            rp:{ name:'حركة السفن', id:location.hostname },
+            rp:{ name:'Safen', id:location.hostname },
             user:{ id:rnd(16), name:String(d.user || 'user'), displayName:String(d.name || d.user || 'user') },
             pubKeyCredParams:[{ type:'public-key', alg:-7 }, { type:'public-key', alg:-257 }],
             authenticatorSelection:{ authenticatorAttachment:'platform', userVerification:'required', residentKey:'discouraged' },
